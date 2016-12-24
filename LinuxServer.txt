@@ -1,0 +1,196 @@
+Universal-USB-Installer
+F10 - boot menu
+Ubuntu Server 16.04
+Install:
+	Install Server
+	English
+	Other
+		Europe
+			Hungary
+	Ireland
+	Detect layout...
+	Host name: microserver
+	Hungary
+	next next next
+	http://ubuntuserverguide.com/2013/02/manual-disk-partition-guide-for-ubuntu-server-edition.html
+
+SSH:
+	sudo aptg-get install ssh
+	service sshd stop
+	nano /etc/ssh/sshd_config
+			PermitRootLogin no
+			+ AllowUsers atom
+	service sshd start
+
+PowerButton:
+	sudo cp /etc/acpi/events/powerbtn /etc/acpi/events/powerbtn.orig
+	sudo nano /etc/acpi/events/powerbtn
+		#action=/etc/acpi/powerbtn.sh
+		action=/sbin/poweroff
+	sudo acpid restart
+	
+Tmux:
+	sudo apt-get install tmux
+		tmux		-	start session
+		ctrl+b, %	-	split into two panes vertically
+		ctrl+b, "	-	split into two panes horizontally
+		ctrl+b, o 	-	switch between panes
+		ctrl+b, c	-	new window
+		ctrl+b, n	-	next window
+		ctrl+b, p	- 	previous window
+		ctrl+b, d	-	detach from session
+		tmux kill-session -t (0-n)
+		tmux list-sessions 	-	list sessions (0-n)
+		tmux attach -t session
+		ctrl+b, ?	-	help
+
+MidnightCommander:
+	sudo apt-get install mc
+
+Nano:
+	nano /etc/nanorc
+		set tabsize 4
+		set tabstospaces
+
+WebMin:
+	sudo nano /etc/apt/sources.list
+		+bottom: deb http://download.webmin.com/download/repository sarge contrib
+		ctrl+x, y, enter
+	cd /home/atom
+		wget http://www.webmin.com/jcameron-key.asc
+		sudo apt-key add jcameron-key.asc
+		sudo apt-get update
+		rm jcameron-key.asc
+		sudo apt-get install webmin
+		sudo reboot
+
+MountDisks:
+	Format:
+		NTFS:
+			sudo fdisk -l
+			(sudo umount /dev/sda1)
+			fdisk /dev/sda
+				‘d’ to delete the partition
+				‘n’ to create a new partition
+				‘p’ for primary
+				‘1’ for partition number
+				‘Enter’ for first cylinder (default 1)
+				‘Enter’ for last cylinder (default of max size)
+				‘t’ for type
+				‘L’ to list codes, and enter code for HPFS/NTFS. In my case, it’s ‘7’
+				‘w’ to write changes to disk, and exit
+			sudo umount /dev/sda1
+			mkfs.ntfs -f /dev/sda1
+		Ext4:
+			sudo fdisk -l
+			sudo umount /dev/sda1
+			fdisk /dev/sda
+				‘d’ to delete the partition
+				‘n’ to create a new partition
+				‘p’ for primary
+				‘1’ for partition number
+				‘Enter’ for first cylinder (default 1)
+				‘Enter’ for last cylinder (default of max size)
+				‘P’	to see partition table
+				‘w’ to write changes to disk, and exit
+			sudo mkfs.ext4 /dev/sda1
+	Manual:
+		NTFS:
+			sudo fdisk -l
+				select the disk
+			id $USER
+			sudo mount -t ntfs /dev/sda1 /media/backup -o uid=1000,gid=1000,utf8,dmask=0000,fmask=0000
+				replace ntfs, sda, backup
+		Ext4:
+			sudo mount /dev/sda1 /media/disk1
+	Auto:
+		NTFS:
+			blkid --> UUID
+			sudo nano /etc/fstab
+			+bottom: UUID=xxxxxxx /media/name ntfs uid=1000,gid=1000,utf8,dmask=0000,fmask=0000,umask=0000 0 0
+		Ext4:
+			blkid
+			
+			
+
+SambaServer:
+	sudo apt-get install samba
+	sudo smbpasswd -a username
+		kell netbios name
+		browsable
+		read only
+		stb
+	
+Transmission:
+	sudo apt-get install transmission-cli transmission-common transmission-daemon
+	sudo service transmission-daemon stop
+	sudo nano /var/lib/transmission-daemon/info/settings.json
+		"download-dir": "media/disk1/transmission"
+		"incomplete-dir": "media/disk1/incomplete"
+			incomplete-dir-enabled
+		"rpc-password": "password", 
+		"rpc-whitelist": "127.0.0.1,192.168.*.*",
+		+bottom:	"watch-dir": "/media/disk1/tfiles",
+					"watch-dir-enabled": true,
+		udo usermod -a -G atom debian-transmission
+	sudo service transmission-daemon start
+	systemctl status transmission-daemon
+	
+	"script-torrent-done-enabled": true, 
+    "script-torrent-done-filename": "/var/lib/transmission-daemon/.config/transmission-daemon/transmission-complete.sh",
+
+MiniDLNA
+	sudo apt-get install minidlna
+	sudo service minidlna stop
+	sudo nano /etc/minidlna.conf
+		media_dir=/media/disk1/transmission
+		port=8201
+		friendly_name=MiniDLNA
+		# media_dir=V,/home/username/dlna/Videos
+		# media_dir=P,/home/username/dlna/Pictures
+	sudo systemctl enable minidlna.service
+	
+FTP:
+	sudo apt-get vsftpd
+	sudo service vsftpd stop
+	(mkdir /home/atom/AnonymFTP)
+	cp /etc/vsftpd.conf /etc/vsftpd.orig
+	nano /etc/vsftpd.conf
+		anonymous_enable=YES
+		anon_root=/home/atom/AnonymFTP
+		local_root=/media/disk1/localftp
+	mkdir /media/disk1/localftp
+	sudo service vsftpd start
+	systemctl status vsftpd
+
+Remove package:
+	dpkg --list
+	sudo apt-get --purge remove packagename
+	sudo apt-get purge --auto-remove packagename
+
+dos2unix
+mutt
+
+Minecraft server:
+	sudo mkdir /srv/minecraft
+	sudo cd /srv/minecraft
+	sudo wget -O minecraft_server.jar https://launcher.mojang.com/mc/game/1.9/server/b4d449cf2918e0f3bd8aa18954b916a4d1880f0d/server.jar
+	java -Xmx1024M -Xms1024M -jar minecraft_server.jar nogui
+	nano ~/minecraft/server.properties
+		online-mode=false
+	nano eula.txt
+		eula=true
+	nano ops.json
+		"uuid": "54d61e19-71cc-477d-8215-8a11c41f5211",
+		"name": "Anna20040405",
+		"level": 4
+	
+Add service to autostart:
+	sudo update-rc.d servicename enable
+Add service
+	/etc/init.d/<service name>
+		chmod 700 /etc/init.d/<service name>
+		update-rc.d <service name> defaults
+		update-rc.d <service name> enable
+
+		ps aux | grep MinecraftServer
